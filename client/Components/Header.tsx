@@ -2,8 +2,10 @@ import { Box, Button, Flex, Grid } from "@chakra-ui/react";
 import React from "react";
 import nftfnLogo from "@/Assets/nftfnLogo.webp";
 import Image from "next/image";
+import { useRouter } from "next/router";
 
 function Header() {
+  const router = useRouter();
   return (
     <Flex
       sx={{
@@ -18,7 +20,10 @@ function Header() {
         right: 0,
       }}
     >
-      <Box sx={{ height: { xs: "32px", md: "40px" } }}>
+      <Box
+        sx={{ height: { xs: "32px", md: "40px" }, cursor: "pointer" }}
+        onClick={() => router.push("/")}
+      >
         <Image
           src={nftfnLogo}
           alt="logo"
@@ -38,6 +43,7 @@ function Header() {
             },
             fontSize: { xs: "14px", md: "16px" },
           }}
+          onClick={() => router.push("/tools")}
         >
           Tools
         </Button>

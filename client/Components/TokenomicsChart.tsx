@@ -52,7 +52,7 @@ const TokenomicsChart = () => {
           cx="50%"
           cy="100%"
           outerRadius={isMd ? 240 : 360}
-          label={({ name, value }) => `${name}: ${value}`}
+          label={({ name, value }) => `${name}: ${value}%`}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

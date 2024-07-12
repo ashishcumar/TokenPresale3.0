@@ -12,8 +12,7 @@ function OurAchievments() {
       sx={{
         padding: { xs: "24px", md: "48px" },
         textAlign: "center",
-        background: "transparent",
-        zIndex: 1,
+        background: "black",
       }}
     >
       <Text
@@ -56,6 +55,7 @@ function OurAchievments() {
               sx={{
                 padding: "12px",
                 background: "transparent",
+                zIndex: 1,
               }}
             >
               <Box

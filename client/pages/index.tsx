@@ -5,8 +5,6 @@ import WhyChoseOurToken from "@/Components/WhyChoseOurToken";
 import bgGrid from "@/Assets/bgGrid.png";
 import TradeTheFuture from "@/Components/TradeTheFuture";
 import OurAchievments from "@/Components/OurAchievments";
-// import Tokenomics from "@/Components/Tokenomics";
-import TokenomicsChart from "@/Components/TokenomicsChart";
 import Tokenomics from "@/Components/Tokenomics";
 import Footer from "@/Components/Footer";
 import Investors from "@/Components/Investors";
@@ -22,7 +20,7 @@ export default function Home() {
       <Image
         src={bgGrid}
         alt="bgGrid"
-        style={{ position: "fixed", inset: 0 }}
+        style={{ position: "fixed", inset: 0, zIndex: 0 }}
       />
       <Header />
       <LandingSections />

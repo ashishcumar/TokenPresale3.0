@@ -7,23 +7,18 @@ async function main() {
 
   const MyToken = await ethers.getContractFactory("AKToken");
   const myToken = await MyToken.deploy("2000000000000000000000000");
-  console.log("myToken --->", myToken);
-  console.log("MyToken deployed to:", myToken.target);
   const Presale = await ethers.getContractFactory("Presale");
   const presale = await Presale.deploy(1000, myToken.target);
-
-  console.log("Presale deployed to:", presale.target);
 
   const transferTx = await myToken?.transfer(
     presale.target,
     "2000000000000000000000000"
   );
   await transferTx.wait();
-
   const startPresaleTx = await presale.startPresale(3628800);
   await startPresaleTx.wait();
-
-  console.log("Presale started");
+  console.log("MyToken deployed to:", myToken.target);
+  console.log("Presale deployed to:", presale.target);
 }
 
 main()
@@ -32,3 +27,4 @@ main()
     console.error(error);
     process.exit(1);
   });
+// 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266;

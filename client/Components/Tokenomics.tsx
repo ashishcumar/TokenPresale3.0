@@ -1,14 +1,16 @@
 import { Grid, Text } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect } from "react";
 import TokenomicsChart from "./TokenomicsChart";
-
+import { useInView } from "react-intersection-observer";
 function Tokenomics() {
+  const { ref, inView, entry } = useInView();
+
   return (
     <Grid
       sx={{
-        background: "transparent",
-        zIndex: 1,
+        background: "black",
       }}
+      ref={ref}
     >
       <Grid
         sx={{
@@ -46,7 +48,7 @@ function Tokenomics() {
           width: "100vw",
           position: "relative",
           background: "transparent",
-          display: { xs: "none", sm: "block" },
+          display: { xs: "none", sm: inView ? "block" : 'none' },
         }}
       >
         <TokenomicsChart />
@@ -58,10 +60,7 @@ function Tokenomics() {
           display: { xs: "block", sm: "none" },
         }}
       >
-        {
-          
-        }
-
+        {}
       </Grid>
     </Grid>
   );

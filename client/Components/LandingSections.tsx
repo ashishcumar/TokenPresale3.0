@@ -8,6 +8,7 @@ import {
   Input,
   InputGroup,
   InputRightAddon,
+  Modal,
   Text,
 } from "@chakra-ui/react";
 import Image from "next/image";
@@ -15,7 +16,12 @@ import { ethers } from "ethers";
 import tokenJson from "@/artifacts/contracts/AKToken.sol/AKToken.json";
 import presaleJson from "@/artifacts/contracts/Presale.sol/Presale.json";
 import useShowToast from "@/CustomHooks/useShowToast";
-
+import { normalTokenCount, weiToEth } from "@/CustomHooks/utils";
+import Countdown from "react-countdown";
+import CountDownChild from "./countDownrenderer";
+import Loader from "./Loader";
+import { presaleAddress, tokenAddress } from "@/helpers/JsonMapping";
+import countDownrenderer from "./countDownrenderer";
 declare global {
   interface Window {
     ethereum: any;
@@ -23,18 +29,30 @@ declare global {
 }
 function LandingSections() {
   const { showToast, closeAllToasts } = useShowToast();
-  const tokenAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
-  const presaleAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [tokenContract, setTokenContract] = useState<ethers.Contract | null>(
     null
   );
-  const [presaleToken, setPresaleToken] = useState<number>(0);
+  const [amountInvest, setAmountInvest] = useState<string>("");
+  const [tokenRecieve, setTokenRecieve] = useState<string>("");
   const [currentWalletAddress, setCurrentWalletAddress] = useState<string>("");
-  const [currentAccTokenBalance, setCurrentAccTokenBalance] =
-    useState<number>(0.0);
+  const [currentAccEthBalance, setCurrentAccEthBalance] = useState<number>(0.0);
   const [presaleContract, setPresaleContract] =
     useState<ethers.Contract | null>(null);
+
+  const [presaleContractDetails, setPresaleContractDetails] = useState({
+    presaleContractBalance: 0,
+    presaleEndTime: 0,
+    totalTokenSold: 0,
+    tokenRate: 0,
+  });
+
+  const [tokenContractDetails, setTokenContractDetails] = useState({
+    presaleTotalTokens: 0,
+    currentAccTokenBalance: 0,
+  });
+
+  console.log({ presaleContractDetails });
 
   const connectWallet = async (_provider: ethers.BrowserProvider) => {
     if (!window.ethereum) return;
@@ -48,6 +66,7 @@ function LandingSections() {
     });
     const signer = await _provider.getSigner();
     const address = await signer.getAddress();
+    console.log({ address });
     const tokenContrct = new ethers.Contract(
       tokenAddress,
       tokenJson.abi,
@@ -58,14 +77,136 @@ function LandingSections() {
       presaleJson.abi,
       signer
     );
-
+    const balance = await _provider.getBalance(address);
+    setCurrentAccEthBalance(Number(balance) / 1000000000000000000);
     setTokenContract(tokenContrct);
     setCurrentWalletAddress(address);
     setPresaleContract(presaleContrct);
   };
 
-  const getTokenBalance = async () => {
-    if (!tokenContract) {
+  const tokens = (n: string) => {
+    return ethers.parseUnits(n.toString(), "ether");
+  };
+
+  const getTokenContractDetails = async () => {
+    try {
+      if (!tokenContract) {
+        return showToast({
+          title: "Error",
+          description: "Please connect your wallet",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+      }
+
+      const totalTokensCountPromise = tokenContract
+        .totalSupply()
+        .then(Number)
+        .then(normalTokenCount);
+      const tokenInCurrentAccPromise = tokenContract
+        .balanceOf(currentWalletAddress)
+        .then(Number)
+        .then(normalTokenCount);
+      const [totalTokensCount, tokenInCurrentAcc] = await Promise.all([
+        totalTokensCountPromise,
+        tokenInCurrentAccPromise,
+      ]);
+
+      setTokenContractDetails({
+        presaleTotalTokens: totalTokensCount,
+        currentAccTokenBalance: tokenInCurrentAcc,
+      });
+    } catch (e) {
+      showToast({
+        title: "Error",
+        description: "Failed to fetch token contract details",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+  };
+
+  const getPresaleContractDetails = async () => {
+    try {
+      if (!presaleContract) {
+        showToast({
+          title: "Error",
+          description: "Please connect your wallet",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const balancePromise = provider.getBalance(presaleAddress).then(Number);
+      const endTimePromise = presaleContract.end().then(Number);
+      const tokenSoldPromise = presaleContract
+        .tokenSold()
+        .then(normalTokenCount);
+      const ratePromise = presaleContract.rate().then(Number);
+      const [balance, endTime, tokenSold, rate] = await Promise.all([
+        balancePromise,
+        endTimePromise,
+        tokenSoldPromise,
+        ratePromise,
+      ]);
+      setPresaleContractDetails({
+        presaleContractBalance: balance,
+        presaleEndTime: endTime,
+        totalTokenSold: tokenSold,
+        tokenRate: rate,
+      });
+    } catch (error) {
+      console.error("Error fetching presale contract details:", error);
+      showToast({
+        title: "Error",
+        description: "Failed to fetch presale contract details",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+  };
+
+  const calculateTokenRecieve = (val: string) => {
+    if (Number(val) > currentAccEthBalance) {
+      closeAllToasts();
+      return showToast({
+        title: "Error",
+        description: "Insufficient Balance",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+
+    setAmountInvest(val);
+    const tRecieve = Number(val) * 1000;
+    setTokenRecieve(tRecieve.toLocaleString("en-IN"));
+  };
+
+  const buyToken = async () => {
+    if (amountInvest.length === 0) {
+      closeAllToasts();
+      return showToast({
+        title: "Error",
+        description: "Please Valid Amount",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+    if (!presaleContract) {
       return showToast({
         title: "Error",
         description: "Please connect your wallet",
@@ -76,18 +217,42 @@ function LandingSections() {
       });
     }
     try {
-      const balance = await tokenContract.balanceOf(currentWalletAddress);
-      setCurrentAccTokenBalance(balance);
+      await presaleContract.buyTokens({ value: tokens(amountInvest) });
+      setIsLoading(true);
+      setAmountInvest("");
+      setTokenRecieve("");
+      localStorage.setItem("isLoading", "true");
     } catch (e) {
-      console.log("getTokenBalance 1", e);
+      console.log("buyToken error", e);
     }
-
+  };
+  const listenToEventTokenPurchase = async () => {
     try {
-      const balance = await presaleContract?.started();
-      console.log("presale balance -->", balance);
-      setCurrentAccTokenBalance(balance);
-    } catch (e) {
-      console.log("getTokenBalance 2", e);
+      if (!presaleContract) {
+        return showToast({
+          title: "Error",
+          description: "Please connect your wallet",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+      }
+
+      presaleContract.on("TokensPurchased", () => {
+        setIsLoading(false);
+        localStorage.setItem("isLoading", "false");
+        showToast({
+          title: "Success!",
+          description: "Tokens Purchase Successful",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        });
+      });
+    } catch (error) {
+      console.error("Error subscribing to event:", error);
     }
   };
 
@@ -107,368 +272,426 @@ function LandingSections() {
   }, []);
 
   useEffect(() => {
-    if (tokenContract) {
-      console.log("herhe ,", tokenContract);
-      getTokenBalance();
+    if (tokenContract && presaleContract) {
+      getTokenContractDetails();
+      getPresaleContractDetails();
     }
-  }, [tokenContract]);
+  }, [tokenContract, presaleContract]);
+
+  useEffect(() => {
+    if (presaleContract) {
+      listenToEventTokenPurchase();
+    }
+
+    return () => {
+      if (presaleContract) {
+        presaleContract.removeAllListeners("TokensPurchased");
+      }
+    };
+  }, [presaleContract]);
 
   return (
-    <Grid
-      sx={{
-        minHeight: "90vh",
-        width: "100vw",
-        marginTop: "90px",
-        gridTemplateColumns: { xs: "1fr", sm: "1fr", md: "3fr 2.5fr" },
-      }}
-    >
+    <>
+      <Modal isOpen={isLoading} onClose={() => {}} isCentered>
+        <Loader />
+      </Modal>
       <Grid
         sx={{
-          position: "relative",
-          alignItems: "center",
-          padding: "24px",
-          minHeight: { xs: "400px", md: "700px" },
-        }}
-      >
-        <Image
-          src={landingSectionBg}
-          alt="landingSectionBg"
-          style={{
-            height: "100%",
-            objectFit: "contain",
-            position: "absolute",
-            inset: 0,
-            zIndex: 0,
-            imageOrientation: "from-image",
-          }}
-        />
-        <Box
-          sx={{
-            zIndex: 1,
-            background: "transparent",
-          }}
-        >
-          <Text
-            color={"secondary"}
-            background={"transparent"}
-            fontSize={{ xs: "60px", md: "120px" }}
-            fontWeight={"bold"}
-            lineHeight={1}
-          >
-            Trade
-          </Text>
-          <Text
-            color={"secondary"}
-            background={"transparent"}
-            fontSize={{ xs: "60px", md: "120px" }}
-            fontWeight={"bold"}
-            lineHeight={1}
-          >
-            Everything
-          </Text>
-          <Text
-            color={"secondary"}
-            background={"transparent"}
-            fontSize={{ xs: "60px", md: "120px" }}
-            fontWeight={"bold"}
-            lineHeight={1}
-          >
-            Preps
-          </Text>
-        </Box>
-        <Text
-          color={"secondary"}
-          background={"transparent"}
-          fontSize={{ xs: "16px", md: "22px" }}
-          fontWeight={"bold"}
-          zIndex={1}
-        >
-          Empowering Traders to Long and Short on the NFT Market for Just $10
-        </Text>
-      </Grid>
-      <Grid
-        sx={{
-          height: "100%",
-          width: "100%",
-          padding: "24px",
-          // background: "transparent",
+          minHeight: "90vh",
+          width: "100vw",
+          marginTop: "84px",
+          gridTemplateColumns: { xs: "1fr", sm: "1fr", md: "3fr 2.5fr" },
+          background: "black",
           zIndex: 1,
         }}
       >
-        <Box
+        <Grid
           sx={{
-            border: "2px solid #ffffff60",
-            minHeight: { xs: "fit-content", md: "500px" },
-            background: "septenary",
-            borderRadius: "16px",
+            position: "relative",
+            alignItems: "center",
             padding: "24px",
+            minHeight: { xs: "400px", md: "700px" },
           }}
         >
-          <Flex
+          <Image
+            src={landingSectionBg}
+            alt="landingSectionBg"
+            style={{
+              height: "100%",
+              objectFit: "contain",
+              position: "absolute",
+              inset: 0,
+              zIndex: 0,
+              imageOrientation: "from-image",
+            }}
+          />
+          <Box
             sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
+              zIndex: 1,
               background: "transparent",
-              flexWrap: "wrap",
             }}
           >
             <Text
-              sx={{
-                fontSize: { xs: "36px", md: "48px" },
-                fontWeight: "bold",
-                color: "secondary",
-                background: "transparent",
-              }}
+              color={"secondary"}
+              background={"transparent"}
+              fontSize={{ xs: "60px", md: "120px" }}
+              fontWeight={"bold"}
+              lineHeight={1}
             >
-              NFTFN Presale
+              Trade
             </Text>
             <Text
-              sx={{
-                fontSize: { xs: "18px", md: "32px" },
-                fontWeight: "bold",
-                color: "tertiary",
-                background: "transparent",
-              }}
+              color={"secondary"}
+              background={"transparent"}
+              fontSize={{ xs: "60px", md: "120px" }}
+              fontWeight={"bold"}
+              lineHeight={1}
             >
-              Stage 2/6
+              Everything
             </Text>
-          </Flex>
+            <Text
+              color={"secondary"}
+              background={"transparent"}
+              fontSize={{ xs: "60px", md: "120px" }}
+              fontWeight={"bold"}
+              lineHeight={1}
+            >
+              Preps
+            </Text>
+          </Box>
 
           <Box
             sx={{
-              background: "black",
-              padding: { xs: "12px", md: "24px 24px 0 24px" },
-              borderRadius: "16px",
-              margin: "24px 0",
+              zIndex: 1,
+              background: "transparent",
             }}
           >
-            <Flex sx={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-              <Flex sx={{ alignItems: "center", gap: "8px" }}>
-                <Text
-                  sx={{
-                    fontSize: { xs: "18px", md: "20px" },
-                    fontWeight: "bold",
-                    color: "tertiary",
-                  }}
-                >
-                  Total Raised =
-                </Text>
-                <Text
-                  sx={{
-                    fontSize: { xs: "18px", md: "24px" },
-                    fontWeight: "bold",
-                    color: "secondary",
-                  }}
-                >
-                  10000 ETH
-                </Text>
-              </Flex>
-              <Flex sx={{ alignItems: "center", gap: "8px" }}>
-                <Text
-                  sx={{
-                    fontSize: { xs: "18px", md: "20px" },
-                    fontWeight: "bold",
-                    color: "tertiary",
-                  }}
-                >
-                  1 NFTFN =
-                </Text>
-                <Text
-                  sx={{
-                    fontSize: { xs: "18px", md: "24px" },
-                    fontWeight: "bold",
-                    color: "secondary",
-                  }}
-                >
-                  0.0001 ETH
-                </Text>
-              </Flex>
-            </Flex>
-            <Box
+            <Countdown
+              date={Date.now() + presaleContractDetails.presaleEndTime}
+              renderer={countDownrenderer}
+              autoStart
+              onStart={() => {
+                console.log("countdown started");
+              }}
+              onPause={() => {
+                console.log("countdown paused");
+              }}
+              onComplete={() => {
+                console.log("countdown completed");
+              }}
+              onStop={() => {
+                console.log("countdown stopped");
+              }}
+            />
+          </Box>
+          <Text
+            color={"secondary"}
+            background={"transparent"}
+            fontSize={{ xs: "16px", md: "22px" }}
+            fontWeight={"bold"}
+            zIndex={1}
+          >
+            Empowering Traders to Long and Short on the NFT Market for Just $10
+          </Text>
+        </Grid>
+        <Grid
+          sx={{
+            height: "100%",
+            width: "100%",
+            padding: "24px",
+          }}
+        >
+          <Box
+            sx={{
+              border: "2px solid #ffffff60",
+              minHeight: { xs: "fit-content", md: "500px" },
+              background: "septenary",
+              borderRadius: "16px",
+              padding: "24px",
+            }}
+          >
+            <Flex
               sx={{
-                margin: "12px 0",
-                padding: { xs: "0", md: "12px" },
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
               }}
             >
-              <Flex justify={"space-between"} flexWrap={"wrap"}>
-                <Flex gap={"8px"}>
+              <Text
+                sx={{
+                  fontSize: { xs: "36px", md: "48px" },
+                  fontWeight: "bold",
+                  color: "secondary",
+                }}
+              >
+                NFTFN Presale
+              </Text>
+              <Text
+                sx={{
+                  fontSize: { xs: "18px", md: "32px" },
+                  fontWeight: "bold",
+                  color: "tertiary",
+                }}
+              >
+                Stage 2/6
+              </Text>
+            </Flex>
+
+            <Box
+              sx={{
+                background: "black",
+                padding: { xs: "12px", md: "24px 24px 0 24px" },
+                borderRadius: "16px",
+                margin: "24px 0",
+              }}
+            >
+              <Flex sx={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+                <Flex sx={{ alignItems: "center", gap: "8px" }}>
                   <Text
                     sx={{
-                      fontSize: { xs: "14px", md: "16px" },
+                      fontSize: { xs: "18px", md: "20px" },
                       fontWeight: "bold",
                       color: "tertiary",
                     }}
                   >
-                    Current Target NFTFN =
+                    Total Raised =
                   </Text>
                   <Text
                     sx={{
-                      fontSize: { xs: "14px", md: "16px" },
+                      fontSize: { xs: "18px", md: "24px" },
                       fontWeight: "bold",
                       color: "secondary",
                     }}
                   >
-                    1000000
+                    {
+                    `${(
+                      (presaleContractDetails.totalTokenSold + 50000) /
+                      1000
+                    ).toLocaleString("en-IN")} `}
+                    ETH
                   </Text>
                 </Flex>
-                <Flex gap={"8px"}>
+                <Flex sx={{ alignItems: "center", gap: "8px" }}>
                   <Text
                     sx={{
-                      fontSize: { xs: "14px", md: "16px" },
+                      fontSize: { xs: "18px", md: "20px" },
                       fontWeight: "bold",
                       color: "tertiary",
                     }}
                   >
-                    Next Stage Price =
+                    1 NFTFN =
                   </Text>
                   <Text
                     sx={{
-                      fontSize: { xs: "14px", md: "16px" },
+                      fontSize: { xs: "18px", md: "24px" },
                       fontWeight: "bold",
                       color: "secondary",
                     }}
                   >
-                    0.001 ETH
+                    {Number(presaleContractDetails.tokenRate) / 10000000} ETH
                   </Text>
                 </Flex>
               </Flex>
               <Box
                 sx={{
-                  width: "100%",
-                  margin: { xs: "12px 0", md: "20px 0 8px 0 " },
-                  borderRadius: "16px",
-                  overflow: "hidden",
-                  position: "relative",
-                  background: "septenary",
+                  margin: "12px 0",
+                  padding: { xs: "0", md: "12px" },
                 }}
               >
+                <Flex justify={"space-between"} flexWrap={"wrap"}>
+                  <Flex gap={"8px"}>
+                    <Text
+                      sx={{
+                        fontSize: { xs: "14px", md: "16px" },
+                        fontWeight: "bold",
+                        color: "tertiary",
+                      }}
+                    >
+                      Current Target NFTFN =
+                    </Text>
+                    <Text
+                      sx={{
+                        fontSize: { xs: "14px", md: "16px" },
+                        fontWeight: "bold",
+                        color: "secondary",
+                      }}
+                    >
+                      {tokenContractDetails.presaleTotalTokens.toLocaleString(
+                        "en-IN"
+                      )}
+                    </Text>
+                  </Flex>
+                  <Flex gap={"8px"}>
+                    <Text
+                      sx={{
+                        fontSize: { xs: "14px", md: "16px" },
+                        fontWeight: "bold",
+                        color: "tertiary",
+                      }}
+                    >
+                      Next Stage Price =
+                    </Text>
+                    <Text
+                      sx={{
+                        fontSize: { xs: "14px", md: "16px" },
+                        fontWeight: "bold",
+                        color: "secondary",
+                      }}
+                    >
+                      0.001 ETH
+                    </Text>
+                  </Flex>
+                </Flex>
                 <Box
                   sx={{
-                    width: "50%",
-                    height: "36px",
-                    background: "lgPrimary",
+                    width: "100%",
+                    margin: { xs: "12px 0", md: "20px 0 8px 0 " },
                     borderRadius: "16px",
-                    transition: "width 1s ease",
-                  }}
-                ></Box>
-                <Text
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    color: "secondary",
-                    background: "transparent",
-                    fontWeight: "semibold",
-                    fontSize: "14px",
-                    height: "fit-content",
-                    width: "fit-content",
-                    margin: "auto",
+                    overflow: "hidden",
+                    position: "relative",
+                    background: "septenary",
                   }}
                 >
-                  Token Sold :- 50,000
-                </Text>
+                  <Box
+                    sx={{
+                      width: `${
+                        (presaleContractDetails.totalTokenSold /
+                          tokenContractDetails.presaleTotalTokens) *
+                          100 +
+                        20
+                      }%`,
+                      height: "36px",
+                      background: "lgPrimary",
+                      borderRadius: "16px",
+                      transition: "width 1s ease",
+                    }}
+                  ></Box>
+                  <Text
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      color: "secondary",
+                      background: "transparent",
+                      fontWeight: "semibold",
+                      fontSize: "14px",
+                      height: "fit-content",
+                      width: "fit-content",
+                      margin: "auto",
+                    }}
+                  >
+                    Token Sold :-
+                    {(
+                      presaleContractDetails.totalTokenSold + 50000
+                    ).toLocaleString("en-IN")}
+                  </Text>
+                </Box>
               </Box>
             </Box>
-          </Box>
-          <Text
-            sx={{
-              fontSize: { xs: "14px", md: "16px" },
-              textAlign: "center",
-              background: "transparent",
-              color: "secondary",
-              fontWeight: "semibold",
-            }}
-          >
-            Your NFTFN Balance : {currentAccTokenBalance}
-          </Text>
-          <Box
-            sx={{
-              background: "transparent",
-              marginTop: "24px",
-            }}
-          >
             <Text
               sx={{
-                color: "secondary",
-                background: "transparent",
-                margin: "8px 0",
-              }}
-            >
-              You are investing ETH :
-            </Text>
-            <InputGroup
-              sx={{
-                margin: "4px 0 12px 0",
+                fontSize: { xs: "14px", md: "16px" },
+                textAlign: "center",
 
-                background: "transparent",
+                color: "secondary",
+                fontWeight: "semibold",
               }}
             >
+              Your NFTFN Balance : {tokenContractDetails.currentAccTokenBalance}
+            </Text>
+            <Box
+              sx={{
+                marginTop: "24px",
+                zIndex: 2,
+              }}
+            >
+              <Text
+                sx={{
+                  color: "secondary",
+                  zIndex: 2,
+                  margin: "8px 0",
+                }}
+              >
+                You are investing ETH :
+              </Text>
+              <InputGroup
+                sx={{
+                  margin: "4px 0 12px 0",
+                }}
+              >
+                <Input
+                  placeholder="0.00"
+                  sx={{
+                    color: "tertiary",
+                    background: "transparent",
+                    borderTop: "1px solid #ffffff60",
+                    borderBottom: "1px solid #ffffff60",
+                    borderLeft: "1px solid #ffffff60",
+                    borderRight: "1px solid transparent",
+                    "&:placeholder": {
+                      color: "tertiary",
+                    },
+                  }}
+                  type="number"
+                  value={amountInvest}
+                  onChange={(e) => calculateTokenRecieve(e.target.value)}
+                />
+                <InputRightAddon
+                  sx={{
+                    background: "transparent",
+                    color: "tertiary",
+                    borderTop: "1px solid #ffffff60",
+                    borderRight: "1px solid #ffffff60",
+                    borderBottom: "1px solid #ffffff60",
+                    borderLeft: "1px solid transparent",
+                  }}
+                >
+                  Balance :-{" "}
+                  {Number(currentAccEthBalance).toLocaleString("en-IN")} ETH
+                </InputRightAddon>
+              </InputGroup>
+              <Text
+                sx={{
+                  color: "secondary",
+
+                  margin: "8px 0",
+                }}
+              >
+                You will receive :
+              </Text>
+
               <Input
                 placeholder="0.00"
                 sx={{
-                  color: "tertiary",
-                  background: "transparent",
-                  borderTop: "1px solid #ffffff60",
-                  borderBottom: "1px solid #ffffff60",
-                  borderLeft: "1px solid #ffffff60",
-                  borderRight: "1px solid transparent",
+                  color: "secondary",
+                  border: "1px solid #ffffff60",
                   "&:placeholder": {
-                    color: "tertiary",
+                    color: "secondary",
                   },
                 }}
+                value={tokenRecieve}
+                isDisabled={true}
               />
-              <InputRightAddon
+
+              <Button
                 sx={{
-                  background: "transparent",
-                  color: "tertiary",
-                  borderTop: "1px solid #ffffff60",
-                  borderRight: "1px solid #ffffff60",
-                  borderBottom: "1px solid #ffffff60",
-                  borderLeft: "1px solid transparent",
-                }}
-              >
-                Balance :- --------- ETH
-              </InputRightAddon>
-            </InputGroup>
-            <Text
-              sx={{
-                color: "secondary",
-                background: "transparent",
-                margin: "8px 0",
-              }}
-            >
-              You will receive :
-            </Text>
-
-            <Input
-              placeholder="0.00"
-              sx={{
-                color: "tertiary",
-                border: "1px solid #ffffff60",
-                "&:placeholder": {
-                  color: "tertiary",
-                },
-              }}
-              isDisabled={true}
-            />
-
-            <Button
-              sx={{
-                background: "lgPrimary",
-                color: "secondary",
-                display: "block",
-                margin: "36px auto auto auto",
-                padding: "12px 48px",
-                "&:hover": {
                   background: "lgPrimary",
-                },
-              }}
-            >
-              Buy Token
-            </Button>
+                  color: "secondary",
+                  display: "block",
+                  margin: "36px auto auto auto",
+                  padding: "12px 48px",
+                  "&:hover": {
+                    background: "lgPrimary",
+                  },
+                }}
+                onClick={buyToken}
+              >
+                Buy Token
+              </Button>
+            </Box>
           </Box>
-        </Box>
+        </Grid>
       </Grid>
-    </Grid>
+    </>
   );
 }
 

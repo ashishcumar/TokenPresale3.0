@@ -12,8 +12,7 @@ function WhyChoseOurToken() {
       sx={{
         padding: { xs: "24px", md: "48px" },
         textAlign: "center",
-        zIndex: 1,
-        background: "transparent",
+        background: "black",
       }}
     >
       <Text
@@ -45,6 +44,7 @@ function WhyChoseOurToken() {
               sx={{
                 padding: "12px",
                 background: "transparent",
+                zIndex:1
               }}
             >
               <Box

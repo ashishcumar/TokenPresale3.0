@@ -23,7 +23,7 @@ function TradeTheFuture() {
       sx={{
         padding: { xs: "24px", md: "48px" },
         gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1.5fr 1fr" },
-        background: "transparent",
+        background: "black",
       }}
     >
       <Grid
@@ -38,7 +38,7 @@ function TradeTheFuture() {
           src={imgArr[siderImg]}
           alt="siderImg"
           style={{
-            height: "90%",
+            maxHeight: "90%",
             objectFit: "contain",
             animation: "moveUpDown 3s ease-in-out infinite",
           }}
