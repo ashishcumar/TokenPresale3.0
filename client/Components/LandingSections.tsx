@@ -16,12 +16,11 @@ import { ethers } from "ethers";
 import tokenJson from "@/artifacts/contracts/AKToken.sol/AKToken.json";
 import presaleJson from "@/artifacts/contracts/Presale.sol/Presale.json";
 import useShowToast from "@/CustomHooks/useShowToast";
-import { normalTokenCount, weiToEth } from "@/CustomHooks/utils";
-import Countdown from "react-countdown";
-import CountDownChild from "./countDownrenderer";
+import { normalTokenCount } from "@/CustomHooks/utils";
 import Loader from "./Loader";
 import { presaleAddress, tokenAddress } from "@/helpers/JsonMapping";
-import countDownrenderer from "./countDownrenderer";
+import ethIcon from "@/Assets/eth.svg";
+import CountDownrenderer from "./CountDownrenderer";
 declare global {
   interface Window {
     ethereum: any;
@@ -52,8 +51,6 @@ function LandingSections() {
     currentAccTokenBalance: 0,
   });
 
-  console.log({ presaleContractDetails });
-
   const connectWallet = async (_provider: ethers.BrowserProvider) => {
     if (!window.ethereum) return;
     if (!_provider) return;
@@ -66,7 +63,6 @@ function LandingSections() {
     });
     const signer = await _provider.getSigner();
     const address = await signer.getAddress();
-    console.log({ address });
     const tokenContrct = new ethers.Contract(
       tokenAddress,
       tokenJson.abi,
@@ -78,10 +74,28 @@ function LandingSections() {
       signer
     );
     const balance = await _provider.getBalance(address);
+    const owner = await tokenContrct.owner();
+    console.log({ owner, address });
+    if (owner === address) {
+      localStorage.setItem("isOwner", "true");
+    } else {
+      localStorage.setItem("isOwner", "false");
+    }
     setCurrentAccEthBalance(Number(balance) / 1000000000000000000);
     setTokenContract(tokenContrct);
     setCurrentWalletAddress(address);
     setPresaleContract(presaleContrct);
+  };
+
+  const throughErr = (msg: string) => {
+    return showToast({
+      title: "Error",
+      description: msg,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
   };
 
   const tokens = (n: string) => {
@@ -91,14 +105,7 @@ function LandingSections() {
   const getTokenContractDetails = async () => {
     try {
       if (!tokenContract) {
-        return showToast({
-          title: "Error",
-          description: "Please connect your wallet",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
+        return throughErr("Please connect wallet first");
       }
 
       const totalTokensCountPromise = tokenContract
@@ -113,35 +120,20 @@ function LandingSections() {
         totalTokensCountPromise,
         tokenInCurrentAccPromise,
       ]);
-
+      localStorage.setItem("tokenCount", totalTokensCount.toString());
       setTokenContractDetails({
         presaleTotalTokens: totalTokensCount,
         currentAccTokenBalance: tokenInCurrentAcc,
       });
     } catch (e) {
-      showToast({
-        title: "Error",
-        description: "Failed to fetch token contract details",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+      return throughErr("Failed to fetch token contract details");
     }
   };
 
   const getPresaleContractDetails = async () => {
     try {
       if (!presaleContract) {
-        showToast({
-          title: "Error",
-          description: "Please connect your wallet",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
-        return;
+        return throughErr("Please connect wallet first");
       }
 
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -157,36 +149,22 @@ function LandingSections() {
         tokenSoldPromise,
         ratePromise,
       ]);
+
       setPresaleContractDetails({
         presaleContractBalance: balance,
-        presaleEndTime: endTime,
+        presaleEndTime: endTime / 1000,
         totalTokenSold: tokenSold,
         tokenRate: rate,
       });
     } catch (error) {
-      console.error("Error fetching presale contract details:", error);
-      showToast({
-        title: "Error",
-        description: "Failed to fetch presale contract details",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+      return throughErr("Failed to fetch presale contract details");
     }
   };
 
   const calculateTokenRecieve = (val: string) => {
     if (Number(val) > currentAccEthBalance) {
       closeAllToasts();
-      return showToast({
-        title: "Error",
-        description: "Insufficient Balance",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+      return throughErr("Insufficient Balance");
     }
 
     setAmountInvest(val);
@@ -197,24 +175,10 @@ function LandingSections() {
   const buyToken = async () => {
     if (amountInvest.length === 0) {
       closeAllToasts();
-      return showToast({
-        title: "Error",
-        description: "Please Valid Amount",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+      return throughErr("Please Valid Amount");
     }
     if (!presaleContract) {
-      return showToast({
-        title: "Error",
-        description: "Please connect your wallet",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+      return throughErr("Please connect your wallet");
     }
     try {
       await presaleContract.buyTokens({ value: tokens(amountInvest) });
@@ -229,14 +193,7 @@ function LandingSections() {
   const listenToEventTokenPurchase = async () => {
     try {
       if (!presaleContract) {
-        return showToast({
-          title: "Error",
-          description: "Please connect your wallet",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-        });
+        return throughErr("Please connect your wallet");
       }
 
       presaleContract.on("TokensPurchased", () => {
@@ -250,6 +207,8 @@ function LandingSections() {
           isClosable: true,
           position: "top-right",
         });
+        getPresaleContractDetails();
+        getTokenContractDetails();
       });
     } catch (error) {
       console.error("Error subscribing to event:", error);
@@ -299,7 +258,7 @@ function LandingSections() {
         sx={{
           minHeight: "90vh",
           width: "100vw",
-          marginTop: "84px",
+          marginTop: { xs: "60px", md: "84px" },
           gridTemplateColumns: { xs: "1fr", sm: "1fr", md: "3fr 2.5fr" },
           background: "black",
           zIndex: 1,
@@ -366,23 +325,11 @@ function LandingSections() {
               background: "transparent",
             }}
           >
-            <Countdown
-              date={Date.now() + presaleContractDetails.presaleEndTime}
-              renderer={countDownrenderer}
-              autoStart
-              onStart={() => {
-                console.log("countdown started");
-              }}
-              onPause={() => {
-                console.log("countdown paused");
-              }}
-              onComplete={() => {
-                console.log("countdown completed");
-              }}
-              onStop={() => {
-                console.log("countdown stopped");
-              }}
-            />
+            {presaleContractDetails.presaleEndTime ? (
+              <CountDownrenderer
+                presaleEndTime={presaleContractDetails.presaleEndTime}
+              />
+            ) : null}
           </Box>
           <Text
             color={"secondary"}
@@ -463,8 +410,7 @@ function LandingSections() {
                       color: "secondary",
                     }}
                   >
-                    {
-                    `${(
+                    {`${(
                       (presaleContractDetails.totalTokenSold + 50000) /
                       1000
                     ).toLocaleString("en-IN")} `}
@@ -626,10 +572,14 @@ function LandingSections() {
                     borderTop: "1px solid #ffffff60",
                     borderBottom: "1px solid #ffffff60",
                     borderLeft: "1px solid #ffffff60",
-                    borderRight: "1px solid transparent",
+                    borderRight: {
+                      xs: "1px solid #ffffff60",
+                      sm: "1px solid transparent",
+                    },
                     "&:placeholder": {
                       color: "tertiary",
                     },
+                    borderRadius: { xs: "4px", sm: "" },
                   }}
                   type="number"
                   value={amountInvest}
@@ -643,10 +593,21 @@ function LandingSections() {
                     borderRight: "1px solid #ffffff60",
                     borderBottom: "1px solid #ffffff60",
                     borderLeft: "1px solid transparent",
+                    display: { xs: "none", sm: "flex" },
                   }}
                 >
-                  Balance :-{" "}
-                  {Number(currentAccEthBalance).toLocaleString("en-IN")} ETH
+                  Balance :-
+                  {Number(currentAccEthBalance).toLocaleString("en-IN")}
+                  <Image
+                    src={ethIcon}
+                    alt="eth"
+                    style={{
+                      height: "16px",
+                      objectFit: "contain",
+                      margin: "0 4px",
+                    }}
+                  />
+                  ETH
                 </InputRightAddon>
               </InputGroup>
               <Text

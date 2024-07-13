@@ -13,12 +13,12 @@ function ToolCards() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loaderMsg, setLoaderMsg] = useState<string>("");
   const [newTokenRate, setNewTokenRate] = useState<string>("");
-  const [currentWalletAddress, setCurrentWalletAddress] = useState<string>("");
   const [tokensToMint, setTokensToMint] = useState<string>("");
   const [tokensToBurn, setTokensToBurn] = useState<string>("");
   const [tokensToTransfer, setTokensToTransfer] = useState<string>("");
   const [tokensTransferAddress, setTokensTransferAddress] =
     useState<string>("");
+  const [tokensBurnAddress, setTokensBurnAddress] = useState<string>("");
   const [tokenContractTokenBln, setTokenContractTokenBln] = useState<number>(0);
   const [tokenContract, setTokenContract] = useState<ethers.Contract | null>();
   const [ownerAddress, setOwnerAddress] = useState<string>("");
@@ -55,7 +55,6 @@ function ToolCards() {
       signer
     );
     setTokenContract(tokenContrct);
-    setCurrentWalletAddress(address);
     setPresaleContract(presaleContrct);
   };
 
@@ -104,6 +103,7 @@ function ToolCards() {
     }
     await presaleContract.setRate(newTokenRate);
     setIsLoading(true);
+    setCardsDetails((prev) => ({ ...prev, tokenRate: Number(newTokenRate) }));
     setNewTokenRate("");
     setLoaderMsg("Setting Token Rate...");
   };
@@ -114,6 +114,10 @@ function ToolCards() {
     }
     await presaleContract.withdraw();
     setIsLoading(true);
+    setCardsDetails((prev) => ({
+      ...prev,
+      contractBalance: 0,
+    }));
     setLoaderMsg(
       `Withdrawing ${cardsDetail.contractBalance.toLocaleString("en-IN")} ETH`
     );
@@ -125,6 +129,10 @@ function ToolCards() {
     }
     await presaleContract.withdrawTokens();
     setIsLoading(true);
+    setCardsDetails((prev) => ({
+      ...prev,
+      currentTokenBalance: 0,
+    }));
     setLoaderMsg(
       `Withdrawing ${normalTokenCount(
         cardsDetail.currentTokenBalance
@@ -139,12 +147,15 @@ function ToolCards() {
     if (!tokensToMint) {
       return throughErr("Please enter a valid number");
     }
-    const tx = await tokenContract.mint(
+    await tokenContract.mint(
       tokenAddress,
       `${Number(tokensToMint) * 1000000000000000000}`
     );
-    console.log({ tx });
     setIsLoading(true);
+    setCardsDetails((prev) => ({
+      ...prev,
+      currentTokenBalance: prev.currentTokenBalance + Number(tokensToMint),
+    }));
     setLoaderMsg(`Minting ${tokensToMint} Tokens...`);
     setTokensToMint("0");
   };
@@ -156,10 +167,20 @@ function ToolCards() {
     if (!tokensToBurn) {
       return throughErr("Please enter a valid number");
     }
-    await tokenContract.burn(`${Number(tokensToBurn) * 1000000000000000000}`);
-    setIsLoading(true);
-    setLoaderMsg(`Burning ${tokensToBurn} Tokens...`);
-    setTokensToBurn("0");
+    const tokensCount = await tokenContract
+      .balanceOf(tokensBurnAddress)
+      .then(Number)
+      .then(normalTokenCount);
+    if (tokensCount > 0 && Number(tokensToBurn) <= tokensCount) {
+      await tokenContract.burn(`${Number(tokensToBurn) * 1000000000000000000}`);
+      setIsLoading(true);
+      setLoaderMsg(
+        `Total Tokens: ${tokensCount}, with ${tokensToBurn} Tokens Set for Burning`
+      );
+      setTokensToBurn("0");
+    } else {
+      return throughErr("Insufficient Tokens");
+    }
   };
 
   const transferTokens = async () => {
@@ -179,6 +200,9 @@ function ToolCards() {
         0,
         5
       )}...${tokensTransferAddress.slice(-5)}`
+    );
+    setTokenContractTokenBln(
+      Number(tokenContractTokenBln) - Number(tokensToTransfer)
     );
     setTokensTransferAddress("");
     setTokensToTransfer("0");
@@ -251,8 +275,7 @@ function ToolCards() {
           {[
             {
               name: "Mint Tokens",
-              label: "Mint Tokens to your wallet:",
-              placeHolder: "tokens to mint",
+              placeHolder: "tokens Count to mint",
               isInput: true,
               label2: "Current Token Balance (Token Contract):",
               value: `${normalTokenCount(tokenContractTokenBln).toLocaleString(
@@ -264,24 +287,8 @@ function ToolCards() {
               inputValue: tokensToMint,
             },
             {
-              name: "Burn Tokens",
-              label: "Burn Tokens from your wallet:",
-              placeHolder: "tokens to burn",
-              isInput: true,
-              label2: "Current Token Balance (Token Contract):",
-              value: `${normalTokenCount(tokenContractTokenBln).toLocaleString(
-                "en-IN"
-              )} Tokens`,
-              ctaName: "Burn Tokens",
-              onchange: setTokensToBurn,
-              cta: burnTokens,
-              inputValue: tokensToBurn,
-            },
-
-            {
               name: "Set Token Rate",
-              label: "Set the price of token:",
-              placeHolder: "new tokens per eth",
+              placeHolder: "new tokens rate per eth",
               isInput: true,
               label2: "Current Token Rate (Presale Contract):",
               value: `${cardsDetail.tokenRate} Token per 1 Eth`,
@@ -289,22 +296,7 @@ function ToolCards() {
               cta: setTokenRate,
             },
             {
-              name: "Transfer Tokens",
-              label: "Transfer Tokens from your wallet:",
-              placeHolder: "tokens to burn",
-              isInput: true,
-              label2: "Current Token Balance (Token Contract):",
-              value: `${normalTokenCount(
-                cardsDetail.currentTokenBalance
-              ).toLocaleString("en-IN")} Tokens`,
-              ctaName: "Transfer Tokens",
-              onchange: setTokensToTransfer,
-              cta: transferTokens,
-              inputValue: tokensToTransfer,
-            },
-            {
               name: "Withdraw Balance",
-              label: "Withdraw Balance from Presale:",
               placeHolder: "only owner's account",
               isInput: true,
               label2: "Current Eth Balance (Presale Contract):",
@@ -316,7 +308,6 @@ function ToolCards() {
             },
             {
               name: "Withdraw Tokens",
-              label: "Withdraw Remaining Tokens from Presale:",
               isInput: true,
               placeHolder: "only owner's account",
               label2: "Current Token Balance (Presale Contract):",
@@ -325,6 +316,30 @@ function ToolCards() {
               ).toLocaleString("en-IN")} Tokens`,
               ctaName: "Withdraw Tokens",
               cta: withdrawToken,
+            },
+            {
+              name: "Burn Tokens",
+              placeHolder: "tokens to burn",
+              isInput: true,
+              label2: "Burn token from any address:",
+              value: ` --- `,
+              ctaName: "Burn Tokens",
+              onchange: setTokensToBurn,
+              cta: burnTokens,
+              inputValue: tokensToBurn,
+            },
+            {
+              name: "Transfer Tokens",
+              placeHolder: "tokens to burn",
+              isInput: true,
+              label2: "Current Token Balance (Token Contract):",
+              value: `${normalTokenCount(tokenContractTokenBln).toLocaleString(
+                "en-IN"
+              )} Tokens`,
+              ctaName: "Transfer Tokens",
+              onchange: setTokensToTransfer,
+              cta: transferTokens,
+              inputValue: tokensToTransfer,
             },
           ].map((item) => {
             return (
@@ -352,36 +367,26 @@ function ToolCards() {
                   {item.name}
                 </Text>
                 <Box sx={{ margin: "24px 0" }}>
-                  <Text
+                  <Box
                     sx={{
-                      color: "secondary",
                       margin: "8px 0",
                     }}
                   >
-                    {item.label}
-                  </Text>
-                  <Box>
-                    <Flex
+                    <Text
                       sx={{
-                        margin: "8px 0",
-                        flexWrap: "wrap",
+                        color: "tertiary",
                       }}
                     >
-                      <Text
-                        sx={{
-                          color: "tertiary",
-                        }}
-                      >
-                        {item.label2}
-                      </Text>
-                      <Text
-                        sx={{
-                          color: "secondary",
-                        }}
-                      >
-                        {item.value}
-                      </Text>
-                    </Flex>
+                      {item.label2}
+                    </Text>
+                    <Text
+                      sx={{
+                        color: "secondary",
+                        margin: "0px 0 8px 0",
+                      }}
+                    >
+                      {item.value}
+                    </Text>
 
                     {item.name === "Transfer Tokens" ? (
                       <Input
@@ -389,7 +394,7 @@ function ToolCards() {
                         sx={{
                           color: "secondary",
                           border: "1px solid #ffffff60",
-                          margin: "8px 0",
+
                           "&:placeholder": {
                             color: "secondary",
                           },
@@ -401,11 +406,28 @@ function ToolCards() {
                       />
                     ) : null}
 
+                    {item.name === "Burn Tokens" ? (
+                      <Input
+                        placeholder={"address"}
+                        sx={{
+                          color: "secondary",
+                          border: "1px solid #ffffff60",
+
+                          "&:placeholder": {
+                            color: "secondary",
+                          },
+                        }}
+                        value={tokensBurnAddress}
+                        onChange={(e) => setTokensBurnAddress(e.target.value)}
+                      />
+                    ) : null}
+
                     <Input
                       placeholder={item.placeHolder}
                       sx={{
                         color: "secondary",
                         border: "1px solid #ffffff60",
+                        margin: "8px 0",
                         "&:placeholder": {
                           color: "secondary",
                         },

@@ -1,10 +1,17 @@
-import { Grid, Text } from "@chakra-ui/react";
-import React, { useEffect } from "react";
+import { Grid, ListItem, Text, UnorderedList } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
 import TokenomicsChart from "./TokenomicsChart";
 import { useInView } from "react-intersection-observer";
+import { normalTokenCount } from "@/CustomHooks/utils";
+import { tokenomicsChartData } from "@/helpers/JsonMapping";
 function Tokenomics() {
-  const { ref, inView, entry } = useInView();
-
+  const { ref, inView } = useInView();
+  const [totalSupply, setTotalSupply] = useState<number>(0);
+  useEffect(() => {
+    if (inView && localStorage.getItem("tokenCount")) {
+      setTotalSupply(Number(localStorage.getItem("tokenCount")));
+    }
+  }, [inView]);
   return (
     <Grid
       sx={{
@@ -24,7 +31,7 @@ function Tokenomics() {
             fontSize: { xs: "32px", md: "58px" },
             fontWeight: "bold",
             color: "secondary",
-            margin: "24px 0",
+            margin: "24px 0 0 0",
             background: "transparent",
           }}
         >
@@ -38,7 +45,7 @@ function Tokenomics() {
             background: "transparent",
           }}
         >
-          Total Supply = 1,000,000,000 $NFTFN
+          Total Supply = {totalSupply.toLocaleString("en-IN")}
         </Text>
       </Grid>
 
@@ -48,7 +55,7 @@ function Tokenomics() {
           width: "100vw",
           position: "relative",
           background: "transparent",
-          display: { xs: "none", sm: inView ? "block" : 'none' },
+          display: { xs: "none", sm: inView ? "block" : "none" },
         }}
       >
         <TokenomicsChart />
@@ -56,11 +63,36 @@ function Tokenomics() {
       <Grid
         sx={{
           height: "300px",
-          border: "2px solid white",
           display: { xs: "block", sm: "none" },
+          padding: "0px 24px",
+          background: "transparent",
+          margin: "auto",
         }}
       >
-        {}
+        {tokenomicsChartData.map((stat) => {
+          return (
+            <Text
+              key={stat.name}
+              sx={{
+                background: "transparent",
+                color: stat.color,
+ 
+                textAlign: "center",
+              }}
+            >
+              <span style={{ fontSize: "16px" }}>{stat.name}</span>:
+              <span
+                style={{
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  margin:"0 4px"
+                }}
+              >
+                {stat.value}%
+              </span>
+            </Text>
+          );
+        })}
       </Grid>
     </Grid>
   );

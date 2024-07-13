@@ -1,0 +1,118 @@
+.preloader {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999999;
+    background-color: #000;
+}
+
+.loadingContainer {
+    width: fit-content;
+    height: 225.13px;
+    display: grid;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.firstLetter {
+    width: 197.23px;
+    height: 225.01px;
+    display: flex;
+    position: relative;
+    flex-direction: column-reverse;
+}
+
+.hammer2 {
+    width: 39.1px;
+    height: 77.84px;
+    background: #75b587;
+    border-radius: 8.6892px;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    animation: animatedHammer 5s ease-in-out infinite;
+}
+
+.thirdLetter {
+    width: 163.65px;
+    height: 225.01px;
+    display: flex;
+    position: relative;
+    justify-content: center;
+    top: 14px;
+    left: -4px;
+}
+
+.thirdLetter > .t {
+    width: 39.1px;
+    height: 38.27px;
+    background: #fff;
+    border-radius: 19.5507px;
+    position: relative;
+    top: 10px;
+    right: 56px;
+    animation: tAnimation 5s ease-in-out infinite;
+}
+
+.animatedBar {
+    position: absolute;
+    width: 39.1px;
+    height: 96.31px;
+    right: 41px;
+    bottom: 2px;
+    background: #fff;
+    border-radius: 19.5507px;
+    animation: animatedBar 5s ease-in-out infinite;
+}
+
+.hammer {
+    width: 39.1px;
+    height: 77.84px;
+    background: #db434d;
+    border-radius: 8.6892px;
+    position: absolute;
+    top: 20px;
+    right: 41px;
+    display: flex;
+    justify-content: center;
+    animation: animatedHammer 5s ease-in-out infinite;
+}
+
+@keyframes tAnimation {
+  0% {
+    height: 92px;
+  }
+  50% {
+    height: 156.27px;
+  }
+  100% {
+    height: 92px;
+  }
+}
+
+@keyframes animatedHammer {
+  0% {
+    height: 92px;
+  }
+  50% {
+    height: 23.31px;
+  }
+  100% {
+    height: 92px;
+  }
+}
+
+.verticalRotate {
+    position: absolute;
+    width: 39.1px;
+    height: 240.65px;
+    left: 57px;
+    top: -0.79px;
+    background: #fff;
+    border-radius: 19.5507px;
+    transform: rotate(-32.91deg);
+}

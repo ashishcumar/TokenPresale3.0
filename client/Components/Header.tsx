@@ -1,11 +1,22 @@
 import { Box, Button, Flex, Grid } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import nftfnLogo from "@/Assets/nftfnLogo.webp";
 import Image from "next/image";
 import { useRouter } from "next/router";
 
 function Header() {
   const router = useRouter();
+  const [isOwner, setIsowner] = useState("");
+
+  useEffect(() => {
+    console.log("header -->", localStorage.getItem("isOwner"));
+    if (localStorage.getItem("isOwner") === "true") {
+      setIsowner("true");
+    } else {
+      setIsowner("");
+    }
+  }, []);
+
   return (
     <Flex
       sx={{
@@ -30,39 +41,26 @@ function Header() {
           style={{ height: "100%", objectFit: "contain", width: "fit-content" }}
         />
       </Box>
-      <Flex sx={{ gap: "12px" }}>
-        <Button
-          sx={{
-            padding: { xs: "4px 12px", md: "12px 24px" },
-            borderRadius: "24px",
-            background: "secondary",
-            color: "quaternary",
-            "&:hover": {
-              background: "secondary",
-              color: "quaternary",
-            },
-            fontSize: { xs: "14px", md: "16px" },
-          }}
-          onClick={() => router.push("/tools")}
-        >
-          Tools
-        </Button>
-        <Button
-          sx={{
-            padding: { xs: "8px 12px", md: "12px 24px" },
-            borderRadius: "24px",
-            background: "quaternary",
-            color: "secondary",
-            "&:hover": {
-              background: "quaternary",
+      {isOwner.length ? (
+        <Flex sx={{ gap: "12px" }}>
+          <Button
+            sx={{
+              padding: { xs: "4px 12px", md: "12px 24px" },
+              borderRadius: "24px",
               color: "secondary",
-            },
-            fontSize: { xs: "14px", md: "16px" },
-          }}
-        >
-          Connect Wallet
-        </Button>
-      </Flex>
+              background: "quaternary",
+              "&:hover": {
+                color: "secondary",
+                background: "quaternary",
+              },
+              fontSize: { xs: "14px", md: "16px" },
+            }}
+            onClick={() => router.push("/tools")}
+          >
+            Tools
+          </Button>
+        </Flex>
+      ) : null}
     </Flex>
   );
 }
