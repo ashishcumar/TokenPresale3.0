@@ -294,6 +294,8 @@ function ToolCards() {
               value: `${cardsDetail.tokenRate} Token per 1 Eth`,
               ctaName: "Set Rate",
               cta: setTokenRate,
+              inputValue: newTokenRate,
+              onchange:setNewTokenRate
             },
             {
               name: "Withdraw Balance",
