@@ -4,10 +4,15 @@ Welcome to the Token Presale repository! This project focuses on developing an E
 
 ## Project Overview
 
-- **ERC20 Token Features:** Enhanced token contract allowing for minting and burning of tokens.
-- **Presale Contract:** Facilitates smooth management of presale processes including starting presales, withdrawing contract balances, and managing token distribution.
-- **Frontend Technologies:** Built with Next.js, React.js, TypeScript, and integrated React Charts for data visualization.
-- **User Experience:** Users can connect MetaMask to participate in presales, view token statistics, and learn about token benefits and investor details.
+### Developed Two Smart Contracts:
+
+- **ERC20 Token:** Features minting, transferring, and burning capabilities.
+- **Presale Contract:** Allows the owner to manage the presale effectively.
+
+### Built a User-Friendly DApp with Two Pages:
+
+- **User Page:** Enables token purchases and provides access to token stats and tokenomics.
+- **Owner Tools Page:** Empowers the presale owner to control the presale, set token rates, mint/burn tokens, withdraw raised ETH, and redeem tokens to their account.
 
 ## Project URL
 
