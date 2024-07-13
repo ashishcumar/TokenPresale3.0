@@ -1,5 +1,4 @@
-
-# Token Presale 
+# Token Presale
 
 Welcome to the Token Presale repository! This project focuses on developing an ERC20 token with additional minting and burning functionalities, alongside a robust Presale contract for managing token presale activities.
 
@@ -10,6 +9,15 @@ Welcome to the Token Presale repository! This project focuses on developing an E
 - **Frontend Technologies:** Built with Next.js, React.js, TypeScript, and integrated React Charts for data visualization.
 - **User Experience:** Users can connect MetaMask to participate in presales, view token statistics, and learn about token benefits and investor details.
 
+## Project URL
+
+Visit the live project: [Donate X DApp](https://token-presale3-0.vercel.app/)
+Project Video :- https://youtu.be/e0EPyMWoW5Q
+
+![Landing Section](readmeAssets/landingPage.png)
+![Tokenomics Section](readmeAssets/tokenomicsChart.png)
+![Presale Owner's Tools](readmeAssets/presaleOwnerTools.png)
+![Travel with us](readmeAssets/tradeWithUS.png)
 
 ## Key Features
 
