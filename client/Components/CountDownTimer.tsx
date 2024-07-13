@@ -2,23 +2,14 @@ import { Flex, Text } from "@chakra-ui/react";
 import React, { useEffect } from "react";
 import { useTimer } from "react-timer-hook";
 
-function CountDownrenderer({ presaleEndTime }: { presaleEndTime: number }) {
-  const {
-    seconds,
-    minutes,
-    hours,
-    days,
-    start,
-    isRunning,
-  } = useTimer({
+function CountDownTimer({ presaleEndTime }: { presaleEndTime: number }) {
+  const { seconds, minutes, hours, days, start, isRunning } = useTimer({
     expiryTimestamp: new Date(
       new Date().setSeconds(new Date().getSeconds() + presaleEndTime)
     ),
     // onExpire: () => console.warn("onExpire called"),
     autoStart: true,
   });
-
-
 
   if (!isRunning) {
     return (
@@ -57,11 +48,13 @@ function CountDownrenderer({ presaleEndTime }: { presaleEndTime: number }) {
           lineHeight: "1",
         }}
       >
-        {`${days <= 9 ? "0" : ""}${days}D `}: {` ${hours <= 9 ? "0" : ""}${hours}H `}:{` ${minutes <= 9 ? "0" : ""}${minutes}M `}:
-        {` ${seconds <= 9 ? "0" : ''}${seconds}S `}
+        {`${days <= 9 ? "0" : ""}${days}D `}:{" "}
+        {` ${hours <= 9 ? "0" : ""}${hours}H `}:
+        {` ${minutes <= 9 ? "0" : ""}${minutes}M `}:
+        {` ${seconds <= 9 ? "0" : ""}${seconds}S `}
       </Text>
     </Flex>
   );
 }
 
-export default CountDownrenderer;
+export default CountDownTimer;

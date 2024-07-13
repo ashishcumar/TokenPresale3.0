@@ -20,7 +20,7 @@ import { normalTokenCount } from "@/CustomHooks/utils";
 import Loader from "./Loader";
 import { presaleAddress, tokenAddress } from "@/helpers/JsonMapping";
 import ethIcon from "@/Assets/eth.svg";
-import CountDownrenderer from "./CountDownrenderer";
+import CountDownTimer from "./CountDownTimer";
 declare global {
   interface Window {
     ethereum: any;
@@ -326,7 +326,7 @@ function LandingSections() {
             }}
           >
             {presaleContractDetails.presaleEndTime ? (
-              <CountDownrenderer
+              <CountDownTimer
                 presaleEndTime={presaleContractDetails.presaleEndTime}
               />
             ) : null}
