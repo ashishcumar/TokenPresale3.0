@@ -9,7 +9,6 @@ function Header() {
   const [isOwner, setIsowner] = useState("");
 
   useEffect(() => {
-    console.log("header -->", localStorage.getItem("isOwner"));
     if (localStorage.getItem("isOwner") === "true") {
       setIsowner("true");
     } else {

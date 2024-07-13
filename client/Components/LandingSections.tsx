@@ -75,7 +75,6 @@ function LandingSections() {
     );
     const balance = await _provider.getBalance(address);
     const owner = await tokenContrct.owner();
-    console.log({ owner, address });
     if (owner === address) {
       localStorage.setItem("isOwner", "true");
     } else {
