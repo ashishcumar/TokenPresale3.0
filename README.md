@@ -11,8 +11,8 @@ Welcome to the Token Presale repository! This project focuses on developing an E
 
 ## Project URL
 
-Visit the live project: [Donate X DApp](https://token-presale3-0.vercel.app/)
-Project Video :- https://youtu.be/e0EPyMWoW5Q
+Visit the live project: [Token Presale](https://token-presale3-0.vercel.app/)
+Project Video: [Youtube](https://youtu.be/e0EPyMWoW5Q)
 
 ![Landing Section](readmeAssets/landingPage.png)
 ![Tokenomics Section](readmeAssets/tokenomicsChart.png)

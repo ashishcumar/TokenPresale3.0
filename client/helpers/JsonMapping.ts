@@ -16,9 +16,8 @@ import sigurdLogo from "@/Assets/sigurdLogo.jpg";
 import Aumirah from "@/Assets/Aumirah.png";
 import AlphaLogoPng from "@/Assets/AlphaLogoPng.png";
 
-
-export const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-export const presaleAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+export const tokenAddress = "0x9D7b6418BcE4d94e075cA038147209b17872Ce56";
+export const presaleAddress = "0x45C991059aB89eEdF59074612CD2C0b1f6cd1857";
 
 export const achivements = [
   {

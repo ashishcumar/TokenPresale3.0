@@ -179,7 +179,7 @@ function LandingSections() {
       return throughErr("Please connect your wallet");
     }
     try {
-      await presaleContract.buyTokens({ value: tokens(amountInvest) });
+      await presaleContract.buyTokens({ value: tokens("0.0001") });
       setIsLoading(true);
       setAmountInvest("");
       setTokenRecieve("");
