@@ -7,6 +7,7 @@ import presaleJson from "@/artifacts/contracts/Presale.sol/Presale.json";
 import useShowToast from "@/CustomHooks/useShowToast";
 import { normalTokenCount, weiToEth } from "@/CustomHooks/utils";
 import { presaleAddress, tokenAddress } from "@/helpers/JsonMapping";
+import { Router, useRouter } from "next/router";
 
 function ToolCards() {
   const { showToast } = useShowToast();
@@ -27,6 +28,7 @@ function ToolCards() {
     contractBalance: 0,
     currentTokenBalance: 0,
   });
+  const router = useRouter();
   const [presaleContract, setPresaleContract] =
     useState<ethers.Contract | null>();
 
@@ -54,6 +56,12 @@ function ToolCards() {
       presaleJson.abi,
       signer
     );
+    const owner = await tokenContrct.owner();
+    if (owner === address) {
+      localStorage.setItem("isOwner", "true");
+    } else {
+      localStorage.setItem("isOwner", "false");
+    }
     setTokenContract(tokenContrct);
     setPresaleContract(presaleContrct);
   };
@@ -243,6 +251,12 @@ function ToolCards() {
     };
   }, [isLoading]);
 
+  useEffect(() => {
+    if (localStorage.getItem("isOwner") === "false") {
+      router.push("/");
+    }
+  }, []);
+
   return (
     <>
       <Modal isOpen={isLoading} onClose={() => {}} isCentered>
@@ -295,7 +309,7 @@ function ToolCards() {
               ctaName: "Set Rate",
               cta: setTokenRate,
               inputValue: newTokenRate,
-              onchange:setNewTokenRate
+              onchange: setNewTokenRate,
             },
             {
               name: "Withdraw Balance",

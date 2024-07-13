@@ -134,7 +134,6 @@ function LandingSections() {
       if (!presaleContract) {
         return throughErr("Please connect wallet first");
       }
-
       const provider = new ethers.BrowserProvider(window.ethereum);
       const balancePromise = provider.getBalance(presaleAddress).then(Number);
       const endTimePromise = presaleContract.end().then(Number);
